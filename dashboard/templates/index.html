@@ -2,110 +2,464 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Weather Dashboard - Open-Meteo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weather Field Desk — Open-Meteo</title>
   <style>
     :root {
-      --bg: #ffffff; --fg: #1a1a1a; --card-bg: #f7f7f8; --border: #ddd;
-      --accent: #2563eb; --muted: #666; --error: #b3261e;
+      color-scheme: light;
+      --ink: #142f35;
+      --ink-soft: #496168;
+      --paper: #f2eee3;
+      --paper-deep: #e4ddcc;
+      --panel: rgba(255, 253, 245, 0.82);
+      --line: #9ca9a4;
+      --line-strong: #567078;
+      --signal: #dd4b2f;
+      --signal-dark: #a82d1b;
+      --sky: #9cc8ce;
+      --night: #173f48;
+      --error: #a52a20;
+      --shadow: 0 18px 45px rgba(20, 47, 53, 0.12);
     }
+
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #121212; --fg: #eaeaea; --card-bg: #1e1e1e; --border: #333;
-        --accent: #60a5fa; --muted: #999; --error: #ff6b6b;
+        color-scheme: dark;
+        --ink: #e9e2d2;
+        --ink-soft: #aab9b7;
+        --paper: #102c33;
+        --paper-deep: #0b2026;
+        --panel: rgba(20, 51, 58, 0.9);
+        --line: #557076;
+        --line-strong: #9bb0b0;
+        --signal: #ff7658;
+        --signal-dark: #ff9a82;
+        --sky: #376f78;
+        --night: #071b20;
+        --error: #ff8d78;
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.3);
       }
     }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 960px; margin: 40px auto; padding: 0 16px;
-      background: var(--bg); color: var(--fg);
+      min-height: 100vh;
+      margin: 0;
+      background:
+        linear-gradient(90deg, transparent 0 49.8%, rgba(20, 47, 53, 0.045) 49.8% 50.2%, transparent 50.2%),
+        repeating-linear-gradient(0deg, transparent 0 31px, rgba(20, 47, 53, 0.055) 31px 32px),
+        radial-gradient(circle at 84% 8%, var(--sky) 0, transparent 31%),
+        var(--paper);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.5;
     }
-    h1 { font-size: 1.5rem; }
-    h2 { font-size: 1.1rem; margin-top: 0; }
-    p.sub { color: var(--muted); font-size: 0.9rem; }
-    .panels { display: flex; flex-direction: column; gap: 24px; }
+
+    button,
+    input { font: inherit; }
+
+    .desk {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: clamp(24px, 5vw, 64px) 0 clamp(48px, 7vw, 88px);
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: clamp(20px, 5vw, 72px);
+      align-items: end;
+      padding-bottom: clamp(22px, 4vw, 38px);
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .eyebrow,
+    .panel-index,
+    label,
+    th,
+    .desk-note,
+    .status-stamp {
+      font-family: "Courier New", Courier, monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--signal);
+      font-size: clamp(0.68rem, 1.2vw, 0.78rem);
+      font-weight: 700;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(2.55rem, 7vw, 6.6rem);
+      font-weight: 400;
+      letter-spacing: -0.055em;
+      line-height: 0.86;
+    }
+
+    .masthead-copy {
+      max-width: 590px;
+      margin: clamp(18px, 3vw, 28px) 0 0;
+      color: var(--ink-soft);
+      font-size: clamp(1rem, 1.6vw, 1.18rem);
+    }
+
+    .status-stamp {
+      display: grid;
+      place-items: center;
+      width: clamp(104px, 13vw, 142px);
+      aspect-ratio: 1;
+      border: 1px solid var(--signal);
+      border-radius: 50%;
+      color: var(--signal);
+      font-size: clamp(0.62rem, 1vw, 0.75rem);
+      font-weight: 700;
+      text-align: center;
+      transform: rotate(5deg);
+    }
+
+    .status-stamp::before {
+      content: "";
+      position: absolute;
+    }
+
+    .panels {
+      display: grid;
+      gap: clamp(18px, 3vw, 30px);
+      margin-top: clamp(28px, 5vw, 52px);
+    }
+
     .panel {
-      border: 1px solid var(--border); border-radius: 8px; padding: 16px;
-      background: var(--card-bg);
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(180px, 0.38fr) minmax(0, 1fr);
+      gap: clamp(22px, 5vw, 64px);
+      overflow: hidden;
+      padding: clamp(22px, 4vw, 42px);
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      animation: desk-entry 520ms both;
     }
-    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+
+    .panel:nth-child(2) { animation-delay: 90ms; }
+    .panel:nth-child(3) { animation-delay: 180ms; }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 46px;
+      height: 10px;
+      background: var(--signal);
+    }
+
+    .panel-heading { align-self: start; }
+
+    .panel-index {
+      display: block;
+      margin-bottom: 18px;
+      color: var(--signal);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 3.35rem);
+      font-weight: 400;
+      letter-spacing: -0.04em;
+      line-height: 0.98;
+    }
+
+    .panel-kicker {
+      max-width: 24ch;
+      margin: 13px 0 0;
+      color: var(--ink-soft);
+      font-size: 0.94rem;
+    }
+
+    .panel-workspace { min-width: 0; }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      align-items: end;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .field { grid-column: span 2; }
+    .field:first-child { grid-column: span 3; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink-soft);
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
     input {
-      padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
-      background: var(--bg); color: var(--fg); font-size: 0.9rem;
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 0;
+      outline: 0;
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      color: var(--ink);
     }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
-    .field { display: flex; flex-direction: column; }
+
+    input::placeholder { color: var(--ink-soft); opacity: 0.68; }
+
     button {
-      padding: 7px 16px; border-radius: 6px; border: none;
-      background: var(--accent); color: white; font-size: 0.9rem; cursor: pointer;
+      grid-column: span 2;
+      min-height: 46px;
+      padding: 10px 16px;
+      border: 1px solid var(--signal-dark);
+      border-radius: 0;
+      background: var(--signal);
+      color: #fffaf0;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.045em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
     }
-    button:hover { opacity: 0.9; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-    ul.facts { margin: 4px 0 12px 0; padding-left: 20px; font-size: 0.85rem; }
-    .result-block { margin-top: 8px; }
-    .error { color: var(--error); font-size: 0.85rem; }
+
+    button:hover {
+      background: var(--signal-dark);
+      box-shadow: 4px 4px 0 var(--ink);
+      transform: translate(-2px, -2px);
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--ink);
+      outline-offset: 3px;
+    }
+
+    .result-block {
+      min-width: 0;
+      margin-top: 22px;
+      overflow-x: auto;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .result-block:empty::before {
+      content: "Awaiting field coordinates.";
+      color: var(--ink-soft);
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+    }
+
+    .result-block p:first-child { margin-top: 0; }
+
+    .result-block strong { color: var(--ink); }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      margin-top: 14px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      font-size: 0.82rem;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--ink-soft);
+      font-size: 0.65rem;
+      font-weight: 700;
+    }
+
+    ul.facts {
+      margin: 8px 0 18px;
+      padding: 0;
+      list-style: none;
+      font-size: 0.88rem;
+    }
+
+    ul.facts li {
+      padding: 7px 0 7px 18px;
+      border-bottom: 1px dotted var(--line);
+    }
+
+    ul.facts li::before {
+      content: "↳";
+      float: left;
+      margin-left: -18px;
+      color: var(--signal);
+    }
+
+    .sub { color: var(--ink-soft); font-size: 0.86rem; }
+
+    .error {
+      padding: 12px 14px;
+      border-left: 4px solid var(--error);
+      background: color-mix(in srgb, var(--error) 9%, transparent);
+      color: var(--error);
+      font-size: 0.88rem;
+    }
+
     .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 600; background: var(--border);
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 7px;
+      border: 1px solid var(--line-strong);
+      color: var(--ink-soft);
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .desk-note {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 22px 0 0;
+      color: var(--ink-soft);
+      font-size: 0.62rem;
+    }
+
+    @keyframes desk-entry {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 820px) {
+      .masthead { grid-template-columns: 1fr; }
+      .status-stamp { display: none; }
+      .panel { grid-template-columns: 1fr; }
+      .panel-kicker { max-width: 48ch; }
+      .field,
+      .field:first-child { grid-column: span 3; }
+      button { grid-column: span 6; }
+    }
+
+    @media (max-width: 560px) {
+      .desk { width: min(100% - 20px, 1180px); padding-top: 20px; }
+      h1 { font-size: clamp(2.7rem, 17vw, 4.4rem); }
+      .panel { padding: 20px 16px 24px; }
+      .row { display: flex; flex-direction: column; align-items: stretch; }
+      .field,
+      button { width: 100%; }
+      .desk-note { display: block; }
+      .desk-note span { display: block; margin-top: 5px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>☁️ Weather Dashboard</h1>
-  <p class="sub">Read-only viewer over the same Open-Meteo adapter the weather MCP server uses.
-     No writes, no auth, no Alpaca.</p>
-
-  <div class="panels">
-
-    <section class="panel" id="panel-current">
-      <h2>Current Weather</h2>
-      <div class="row">
-        <div class="field">
-          <label for="current-location">Location</label>
-          <input type="text" id="current-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
-        </div>
-        <button id="current-btn">Get current weather</button>
+  <main class="desk">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Open-Meteo / observation console</p>
+        <h1>Weather<br>field desk.</h1>
+        <p class="masthead-copy">Check conditions, inspect the next seven days, then turn the forecast into a practical field plan. The same read-only weather source serves this desk and the MCP tools.</p>
       </div>
-      <div class="result-block" id="current-result"></div>
-    </section>
+      <div class="status-stamp" aria-label="Read-only live weather data">Read only<br>live data<br>no account</div>
+    </header>
 
-    <section class="panel" id="panel-forecast">
-      <h2>Forecast</h2>
-      <div class="row">
-        <div class="field">
-          <label for="forecast-location">Location</label>
-          <input type="text" id="forecast-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+    <div class="panels">
+      <section class="panel" id="panel-current">
+        <div class="panel-heading">
+          <span class="panel-index">Desk 01 / Now</span>
+          <h2>Current<br>observation</h2>
+          <p class="panel-kicker">Resolve one place and read its latest reported conditions.</p>
         </div>
-        <div class="field">
-          <label for="forecast-days">Days (1-7)</label>
-          <input type="number" id="forecast-days" min="1" max="7" value="5" style="width: 70px;">
+        <div class="panel-workspace">
+          <div class="row">
+            <div class="field">
+              <label for="current-location">Location</label>
+              <input type="text" id="current-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+            </div>
+            <button id="current-btn">Read conditions</button>
+          </div>
+          <div class="result-block" id="current-result" aria-live="polite"></div>
         </div>
-        <button id="forecast-btn">Get forecast</button>
-      </div>
-      <div class="result-block" id="forecast-result"></div>
-    </section>
+      </section>
 
-    <section class="panel" id="panel-recommendation">
-      <h2>Recommendation</h2>
-      <div class="row">
-        <div class="field">
-          <label for="rec-location">Location</label>
-          <input type="text" id="rec-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+      <section class="panel" id="panel-forecast">
+        <div class="panel-heading">
+          <span class="panel-index">Desk 02 / Outlook</span>
+          <h2>Forecast<br>strip</h2>
+          <p class="panel-kicker">Set a one-to-seven-day range and compare heat, rain, and wind.</p>
         </div>
-        <div class="field">
-          <label for="rec-date">Date (optional, YYYY-MM-DD)</label>
-          <input type="text" id="rec-date" placeholder="today">
+        <div class="panel-workspace">
+          <div class="row">
+            <div class="field">
+              <label for="forecast-location">Location</label>
+              <input type="text" id="forecast-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+            </div>
+            <div class="field">
+              <label for="forecast-days">Days (1-7)</label>
+              <input type="number" id="forecast-days" min="1" max="7" value="5">
+            </div>
+            <button id="forecast-btn">Plot forecast</button>
+          </div>
+          <div class="result-block" id="forecast-result" aria-live="polite"></div>
         </div>
-        <div class="field">
-          <label for="rec-activity">Activity (optional)</label>
-          <input type="text" id="rec-activity" placeholder="outdoor">
-        </div>
-        <button id="rec-btn">Get recommendation</button>
-      </div>
-      <div class="result-block" id="rec-result"></div>
-    </section>
+      </section>
 
-  </div>
+      <section class="panel" id="panel-recommendation">
+        <div class="panel-heading">
+          <span class="panel-index">Desk 03 / Field plan</span>
+          <h2>Decision<br>notes</h2>
+          <p class="panel-kicker">Check umbrella, clothing, and travel guidance against the facts used.</p>
+        </div>
+        <div class="panel-workspace">
+          <div class="row">
+            <div class="field">
+              <label for="rec-location">Location</label>
+              <input type="text" id="rec-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+            </div>
+            <div class="field">
+              <label for="rec-date">Date (optional, YYYY-MM-DD)</label>
+              <input type="text" id="rec-date" placeholder="today">
+            </div>
+            <div class="field">
+              <label for="rec-activity">Activity (optional)</label>
+              <input type="text" id="rec-activity" placeholder="outdoor">
+            </div>
+            <button id="rec-btn">Draft field note</button>
+          </div>
+          <div class="result-block" id="rec-result" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+
+    <p class="desk-note">Open-Meteo weather desk <span>No writes / no auth / no Alpaca</span></p>
+  </main>
 
   <script>
     function escapeHtml(s) {
