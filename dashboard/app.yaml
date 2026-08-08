@@ -2,16 +2,22 @@ command:
   - "python"
   - "app.py"
 
+resources:
+  - name: requirements
+    source:
+      path: ./requirements.txt
+  # Pulls in the sibling mcp_server/ package (openmeteo_adapter.py,
+  # weather_codes.py) so `import mcp_server.openmeteo_adapter` resolves when
+  # this app is deployed as its own Databricks App, separate from
+  # mcp_server/'s own app. Mirrors the reference's `resources:` shape.
+  - name: weather-mcp-server
+    source:
+      path: ../mcp_server
+
 env:
-  - name: LAKEBASE_SECRET_SCOPE
-    value: "database"
-  - name: LAKEBASE_SECRET_KEY
-    value: "lakebase-url"
-  - name: PAPER_ACCOUNT_ID
-    value: "agent-bricks-demo"
-  - name: ALPACA_SECRET_SCOPE
-    value: "database"
-  - name: ALPACA_KEY_ID_SECRET_KEY
-    value: "alpaca-key-id"
-  - name: ALPACA_SECRET_KEY_SECRET_KEY
-    value: "alpaca-secret-key"
+  - name: FLASK_RUN_HOST
+    value: "0.0.0.0"
+  - name: FLASK_RUN_PORT
+    value: "8001"
+  - name: LOG_LEVEL
+    value: "INFO"

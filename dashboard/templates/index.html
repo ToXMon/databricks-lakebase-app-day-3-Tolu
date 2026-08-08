@@ -2,86 +2,236 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Paper Trading Dashboard - Agent Bricks + Alpaca MCP</title>
+  <title>Weather Dashboard - Open-Meteo</title>
   <style>
-    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
-    h1 { font-size: 1.4rem; }
-    .cards { display: flex; gap: 16px; margin-bottom: 24px; }
-    .card { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
-    .card .label { color: #666; font-size: 0.85rem; }
-    .card .value { font-size: 1.4rem; font-weight: 600; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-    .pos { color: #0a7a2f; }
-    .neg { color: #b3261e; }
-    .side-BUY { color: #0a7a2f; font-weight: 600; }
-    .side-SELL { color: #b3261e; font-weight: 600; }
-    #refresh { padding: 6px 14px; cursor: pointer; }
+    :root {
+      --bg: #ffffff; --fg: #1a1a1a; --card-bg: #f7f7f8; --border: #ddd;
+      --accent: #2563eb; --muted: #666; --error: #b3261e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212; --fg: #eaeaea; --card-bg: #1e1e1e; --border: #333;
+        --accent: #60a5fa; --muted: #999; --error: #ff6b6b;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 960px; margin: 40px auto; padding: 0 16px;
+      background: var(--bg); color: var(--fg);
+    }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.1rem; margin-top: 0; }
+    p.sub { color: var(--muted); font-size: 0.9rem; }
+    .panels { display: flex; flex-direction: column; gap: 24px; }
+    .panel {
+      border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+      background: var(--card-bg);
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    input {
+      padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--fg); font-size: 0.9rem;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+    .field { display: flex; flex-direction: column; }
+    button {
+      padding: 7px 16px; border-radius: 6px; border: none;
+      background: var(--accent); color: white; font-size: 0.9rem; cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    ul.facts { margin: 4px 0 12px 0; padding-left: 20px; font-size: 0.85rem; }
+    .result-block { margin-top: 8px; }
+    .error { color: var(--error); font-size: 0.85rem; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600; background: var(--border);
+    }
   </style>
 </head>
 <body>
-  <h1>📈 Paper Trading Dashboard</h1>
-  <p>Watching account <code id="account-id">{{ default_account_id }}</code> - trades placed by an Agent Bricks
-     agent through the Alpaca paper-trading MCP server show up here.
-     <button id="refresh">Refresh</button></p>
+  <h1>☁️ Weather Dashboard</h1>
+  <p class="sub">Read-only viewer over the same Open-Meteo adapter the weather MCP server uses.
+     No writes, no auth, no Alpaca.</p>
 
-  <div class="cards">
-    <div class="card"><div class="label">Cash Balance</div><div class="value" id="cash">-</div></div>
-    <div class="card"><div class="label">Market Value</div><div class="value" id="market-value">-</div></div>
-    <div class="card"><div class="label">Total Equity</div><div class="value" id="total-equity">-</div></div>
+  <div class="panels">
+
+    <section class="panel" id="panel-current">
+      <h2>Current Weather</h2>
+      <div class="row">
+        <div class="field">
+          <label for="current-location">Location</label>
+          <input type="text" id="current-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+        </div>
+        <button id="current-btn">Get current weather</button>
+      </div>
+      <div class="result-block" id="current-result"></div>
+    </section>
+
+    <section class="panel" id="panel-forecast">
+      <h2>Forecast</h2>
+      <div class="row">
+        <div class="field">
+          <label for="forecast-location">Location</label>
+          <input type="text" id="forecast-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+        </div>
+        <div class="field">
+          <label for="forecast-days">Days (1-7)</label>
+          <input type="number" id="forecast-days" min="1" max="7" value="5" style="width: 70px;">
+        </div>
+        <button id="forecast-btn">Get forecast</button>
+      </div>
+      <div class="result-block" id="forecast-result"></div>
+    </section>
+
+    <section class="panel" id="panel-recommendation">
+      <h2>Recommendation</h2>
+      <div class="row">
+        <div class="field">
+          <label for="rec-location">Location</label>
+          <input type="text" id="rec-location" placeholder="Lagos, Nigeria" value="Lagos, Nigeria">
+        </div>
+        <div class="field">
+          <label for="rec-date">Date (optional, YYYY-MM-DD)</label>
+          <input type="text" id="rec-date" placeholder="today">
+        </div>
+        <div class="field">
+          <label for="rec-activity">Activity (optional)</label>
+          <input type="text" id="rec-activity" placeholder="outdoor">
+        </div>
+        <button id="rec-btn">Get recommendation</button>
+      </div>
+      <div class="result-block" id="rec-result"></div>
+    </section>
+
   </div>
 
-  <h2>Open Positions</h2>
-  <table>
-    <thead><tr><th>Symbol</th><th>Qty</th><th>Avg Cost</th><th>Last Price</th><th>Market Value</th><th>Unrealized P/L</th></tr></thead>
-    <tbody id="positions-body"></tbody>
-  </table>
-
-  <h2>Recent Orders</h2>
-  <table>
-    <thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Notional</th></tr></thead>
-    <tbody id="orders-body"></tbody>
-  </table>
-
   <script>
-    const accountId = document.getElementById('account-id').textContent.trim();
-    const money = (n) => '$' + Number(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-    async function refresh() {
-      const [account, orders] = await Promise.all([
-        fetch(`/api/account?account_id=${accountId}`).then(r => r.json()),
-        fetch(`/api/orders?account_id=${accountId}`).then(r => r.json()),
-      ]);
-
-      document.getElementById('cash').textContent = money(account.cash_balance);
-      document.getElementById('market-value').textContent = money(account.market_value);
-      document.getElementById('total-equity').textContent = money(account.total_equity);
-
-      const posBody = document.getElementById('positions-body');
-      posBody.innerHTML = '';
-      for (const p of account.positions) {
-        const plClass = p.unrealized_pl >= 0 ? 'pos' : 'neg';
-        posBody.innerHTML += `<tr>
-          <td>${p.symbol}</td><td>${p.quantity}</td><td>${money(p.avg_cost)}</td>
-          <td>${money(p.last_price)}</td><td>${money(p.market_value)}</td>
-          <td class="${plClass}">${money(p.unrealized_pl)}</td>
-        </tr>`;
-      }
-
-      const ordersBody = document.getElementById('orders-body');
-      ordersBody.innerHTML = '';
-      for (const o of orders) {
-        ordersBody.innerHTML += `<tr>
-          <td>${new Date(o.created_at).toLocaleString()}</td><td>${o.symbol}</td>
-          <td class="side-${o.side}">${o.side}</td><td>${o.quantity}</td>
-          <td>${money(o.price)}</td><td>${money(o.notional)}</td>
-        </tr>`;
-      }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
     }
 
-    document.getElementById('refresh').addEventListener('click', refresh);
-    refresh();
-    setInterval(refresh, 10000);
+    function renderError(container, data) {
+      container.innerHTML = `<p class="error">Error: ${escapeHtml(data.error || "unknown error")}</p>`;
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { error: `Non-JSON response (HTTP ${res.status})` };
+      }
+      return { ok: res.ok, data };
+    }
+
+    document.getElementById("current-btn").addEventListener("click", async () => {
+      const location = document.getElementById("current-location").value.trim();
+      const container = document.getElementById("current-result");
+      container.innerHTML = "<p>Loading...</p>";
+      if (!location) { renderError(container, { error: "Location is required" }); return; }
+
+      const { ok, data } = await fetchJson(`/api/current_weather?location=${encodeURIComponent(location)}`);
+      if (!ok || data.error) { renderError(container, data); return; }
+
+      const loc = data.location || {};
+      const cur = data.current || {};
+      const units = data.units || {};
+      container.innerHTML = `
+        <p><strong>${escapeHtml(loc.name || "")}</strong>, ${escapeHtml(loc.country || "")}
+           <span class="badge">${escapeHtml(loc.timezone || "")}</span></p>
+        <ul class="facts">
+          <li>Time: ${escapeHtml(cur.time || "")}</li>
+          <li>Temperature: ${escapeHtml(cur.temperature_2m)}&deg; (${escapeHtml(units.temperature_unit || "")})</li>
+          <li>Feels like: ${escapeHtml(cur.apparent_temperature)}&deg;</li>
+          <li>Humidity: ${escapeHtml(cur.relative_humidity_2m)}%</li>
+          <li>Precipitation: ${escapeHtml(cur.precipitation)} ${escapeHtml(units.precipitation_unit || "")}</li>
+          <li>Conditions: ${escapeHtml(cur.weather_description)} (code ${escapeHtml(cur.weather_code)})</li>
+          <li>Wind: ${escapeHtml(cur.wind_speed_10m)} ${escapeHtml(units.wind_speed_unit || "")} @ ${escapeHtml(cur.wind_direction_10m)}&deg;</li>
+        </ul>`;
+    });
+
+    document.getElementById("forecast-btn").addEventListener("click", async () => {
+      const location = document.getElementById("forecast-location").value.trim();
+      const days = document.getElementById("forecast-days").value.trim();
+      const container = document.getElementById("forecast-result");
+      container.innerHTML = "<p>Loading...</p>";
+      if (!location) { renderError(container, { error: "Location is required" }); return; }
+
+      const { ok, data } = await fetchJson(
+        `/api/forecast?location=${encodeURIComponent(location)}&days=${encodeURIComponent(days)}`
+      );
+      if (!ok || data.error) { renderError(container, data); return; }
+
+      const loc = data.location || {};
+      const rows = (data.forecast || []).map((d) => `
+        <tr>
+          <td>${escapeHtml(d.date)}</td>
+          <td>${escapeHtml(d.weather_description)}</td>
+          <td>${escapeHtml(d.temperature_2m_max)}&deg; / ${escapeHtml(d.temperature_2m_min)}&deg;</td>
+          <td>${escapeHtml(d.precipitation_probability_max)}%</td>
+          <td>${escapeHtml(d.precipitation_sum)}</td>
+          <td>${escapeHtml(d.wind_speed_10m_max)}</td>
+        </tr>`).join("");
+
+      container.innerHTML = `
+        <p><strong>${escapeHtml(loc.name || "")}</strong>, ${escapeHtml(loc.country || "")}
+           <span class="badge">${escapeHtml(loc.timezone || "")}</span></p>
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Conditions</th><th>Max/Min</th>
+            <th>Precip prob.</th><th>Precip sum</th><th>Wind max</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    });
+
+    document.getElementById("rec-btn").addEventListener("click", async () => {
+      const location = document.getElementById("rec-location").value.trim();
+      const date = document.getElementById("rec-date").value.trim();
+      const activity = document.getElementById("rec-activity").value.trim();
+      const container = document.getElementById("rec-result");
+      container.innerHTML = "<p>Loading...</p>";
+      if (!location) { renderError(container, { error: "Location is required" }); return; }
+
+      const params = new URLSearchParams({ location });
+      if (date) params.set("date", date);
+      if (activity) params.set("activity", activity);
+
+      const { ok, data } = await fetchJson(`/api/recommendation?${params.toString()}`);
+      if (!ok || data.error) { renderError(container, data); return; }
+
+      if (data.status === "outside_forecast_window") {
+        container.innerHTML = `<p class="error">${escapeHtml(data.date)} is outside the 7-day forecast window for ${escapeHtml(data.location)}.</p>`;
+        return;
+      }
+
+      const loc = data.location || {};
+      const umbrella = data.umbrella || {};
+      const clothing = data.clothing || {};
+      const travel = data.travel || {};
+      const facts = data.facts_used || [];
+
+      const factsHtml = facts.map((f) =>
+        `<li>${escapeHtml(f.name)} = ${escapeHtml(f.value)} (threshold: ${escapeHtml(f.threshold)})</li>`
+      ).join("");
+
+      container.innerHTML = `
+        <p><strong>${escapeHtml(loc.name || "")}</strong>, ${escapeHtml(loc.country || "")}
+           on ${escapeHtml(data.date)} <span class="badge">${escapeHtml(loc.timezone || "")}</span></p>
+        <p>${escapeHtml(data.summary || "")}</p>
+        <ul class="facts">
+          <li>☂️ Umbrella: <strong>${umbrella.needed ? "Yes" : "No"}</strong> - ${escapeHtml((umbrella.reasons || []).join("; "))}</li>
+          <li>👕 Clothing: <strong>${escapeHtml(clothing.advice)}</strong> - ${escapeHtml((clothing.reasons || []).join("; "))}</li>
+          <li>🧳 Travel: <strong>${escapeHtml(travel.advice)}</strong> - ${escapeHtml((travel.reasons || []).join("; "))}</li>
+        </ul>
+        <p class="sub">Facts used:</p>
+        <ul class="facts">${factsHtml}</ul>`;
+    });
   </script>
 </body>
 </html>
