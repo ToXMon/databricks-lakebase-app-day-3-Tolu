@@ -1,0 +1,13 @@
+{
+  "title": "Bootcamp Day 3 Weather-Prediction MCP Server + Agent",
+  "type": "existing_repo_change",
+  "repository": "https://github.com/ToXMon/databricks-lakebase-app-day-3-Tolu.git",
+  "objective": "Prepare an AdaL execution prompt and project workspace for implementing, deploying, demonstrating, and documenting the Day 3 weather MCP assignment.",
+  "constraints": [
+    "Agent Zero filesystem/ASE project only",
+    "Open-Meteo preferred",
+    "shareable Databricks App URLs required",
+    "Agent Zero reviews before GitHub push",
+    "cost-effective/open-source AdaL model preferred"
+  ]
+}
