@@ -12,3 +12,8 @@ env:
     value: "8000"
   - name: LOG_LEVEL
     value: "INFO"
+
+# Allow unauthenticated access to MCP endpoints
+# This is required for AI Gateway to discover tools
+auth:
+  default_access: "allow"

@@ -23,18 +23,9 @@ from datetime import datetime
 
 from flask import Flask, jsonify, render_template, request
 
-# Local-dev shim: if mcp_server isn't importable (e.g. running "python app.py"
-# from inside dashboard/ directly instead of from homework/day3/), fall back
-# to adding the sibling mcp_server/ folder's parent onto sys.path. Prefer
-# running from homework/day3/ (see AGENTS.md) - this is a last-resort shim,
-# not the primary import path.
-try:
-    from mcp_server import openmeteo_adapter
-    from mcp_server.openmeteo_adapter import WeatherAdapterError
-except ImportError:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-    from mcp_server import openmeteo_adapter
-    from mcp_server.openmeteo_adapter import WeatherAdapterError
+# Import from local modules (copied directly into dashboard folder for self-contained deployment)
+import openmeteo_adapter
+from openmeteo_adapter import WeatherAdapterError
 
 app = Flask(__name__)
 
@@ -274,5 +265,5 @@ def api_recommendation():
 
 if __name__ == "__main__":
     host = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
-    port = int(os.getenv("FLASK_RUN_PORT", 8001))
+    port = int(os.getenv("DATABRICKS_APP_PORT", os.getenv("FLASK_RUN_PORT", "8001")))
     app.run(debug=False, host=host, port=port)
